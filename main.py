@@ -7,14 +7,27 @@ import subprocess
 
 class paipaiBot:
     def __init__(self):
-        self.window_region = self.getWindowRegion()
-        self.action_cord = self.getActionCord(self.window_region)
-        self.status_region = self.getStatusRegion(self.window_region)
+        self.window_region = None
+        self.action_cord = None
+        self.status_region = None
 
         # System and bidding status
         self.cur_sys_time = None
         self.cur_lowest_bid = None
         self.cur_lowest_bid_time = None
+
+        try:
+            self.locate()
+
+        except Exception as ex:
+            print str(ex)
+
+    def locate(self):
+        print 'Locating the bidding window'
+
+        self.window_region = self.getWindowRegion()
+        self.action_cord = self.getActionCord(self.window_region)
+        self.status_region = self.getStatusRegion(self.window_region)
 
     def imPath(self, filename):
         return os.path.join('images', filename)
@@ -115,6 +128,10 @@ class paipaiBot:
         Add amount on top of current min bid price
         '''
         logging.debug('paipaiBot::add_100x - Increase {0}'.format(amount))
+
+        if self.window_region is None:
+            self.locate()
+
         add_100x_pos = self.action_cord['add_100x']
         add_100x_btn_pos = self.action_cord['add_100x_btn']
 
@@ -131,6 +148,9 @@ class paipaiBot:
         Click add_300 button to add 300 on
         top of current min bid price
         '''
+        if self.window_region is None:
+            self.locate()
+
         add_300_pos = self.action_cord['add_300']
         pyautogui.click(add_300_pos[0], add_300_pos[1])
         pyautogui.click()
@@ -172,6 +192,7 @@ def main():
                                    if increase_amount is not there or invalid, we will
                                    just increase 300
                                    e.g t 11:59:45 600
+    r[relocate] relocate the bidding window
     q[quit]: exit the program
     '''
 
@@ -184,6 +205,7 @@ def main():
     # Main loop
     cmd = None
     cmd_handler = cmdHandler()
+
     while cmd != 'quit' and cmd != 'q':
         cmd_arr = raw_input('> ').split()
 
@@ -191,25 +213,32 @@ def main():
             continue
 
         cmd = cmd_arr[0]
-        if cmd == 'h' or cmd == 'help':
-            print help_txt
+        try:
+            if cmd == 'h' or cmd == 'help':
+                print help_txt
 
-        elif cmd == 'a' or cmd == 'add':
-            if len(cmd_arr) > 2:
-                print 'Invalid command, use h[help] to see the usage'
-            elif len(cmd_arr) == 1:
-                cmd_handler.handle_add(cmd_arr[1])
+            elif cmd == 'a' or cmd == 'add':
+                if len(cmd_arr) > 2:
+                    print 'Invalid command, use h[help] to see the usage'
+                elif len(cmd_arr) == 2:
+                    cmd_handler.handle_add(cmd_arr[1])
+                else:
+                    cmd_handler.handle_add('300')
+
+            elif cmd == 't' or cmd == 'timer':
+                print 'set a timer and automatically increase the price by certain amount'
+
+            elif cmd == 'r' or cmd == 'relocate':
+                cmd_handler.bot.locate()
+
+            elif cmd == 'q' or cmd == 'quit':
+                print 'quit the program...'
+
             else:
-                cmd_handler.handle_add('300')
+                print 'Invalid command!\nUsing h[help] to check the manual'
 
-        elif cmd == 't' or cmd == 'timer':
-            print 'set a timer and automatically increase the price by certain amount'
-
-        elif cmd == 'q' or cmd == 'quit':
-            print 'quit the program...'
-
-        else:
-            print 'Invalid command!\nUsing h[help] to check the manual'
+        except Exception as ex:
+            print str(ex)
 
     print 'Bye...'
 
