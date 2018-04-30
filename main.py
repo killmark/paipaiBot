@@ -2,7 +2,8 @@ import logging
 import os
 import pyautogui
 import subprocess
-# import time
+import time
+from datetime import datetime
 
 
 class paipaiBot:
@@ -62,6 +63,10 @@ class paipaiBot:
             'add_100': (window_region[0] + 780, window_region[1] + 216),
             'add_200': (window_region[0] + 698, window_region[1] + 216),
             'add_300': (window_region[0] + 623, window_region[1] + 216),
+            # Do bid related button
+            'click_bid_ok': (window_region[0] + 528, window_region[1] + 336),
+            'click_bid_cancel': (window_region[0] + 718, window_region[1] + 336),
+            'click_bid_done': (window_region[0] + 638, window_region[1] + 322),
         }
 
         return action_cord
@@ -77,6 +82,9 @@ class paipaiBot:
         return status_region
 
     def getCurrentSysTime(self):
+        if self.window_region is None:
+            self.locate()
+
         logging.debug('Get current system time')
         cur_sys_time_region = self.status_region['cur_sys_time']
         time_im = pyautogui.screenshot(region=cur_sys_time_region)
@@ -94,34 +102,11 @@ class paipaiBot:
             cur_sys_time = result_fd.read()
             logging.debug('Current System time: {0}'.format(cur_sys_time))
 
+        return cur_sys_time.strip()
+
     def getCurrentLowestBid(self):
         # TODO
         pass
-
-    # Test Functions
-    # TODO move them out of this class
-
-    def test_add_300(self):
-        # click add_300 button
-        add_300_pos = self.action_cord['add_300']
-        pyautogui.click(add_300_pos[0], add_300_pos[1])
-        pyautogui.click()
-
-        # click do_bid button
-        do_bid_pos = self.action_cord['do_bid']
-        pyautogui.click(do_bid_pos[0], do_bid_pos[1])
-
-    def test_add_100x(self):
-        add_100x_pos = self.action_cord['add_100x']
-        add_100x_btn_pos = self.action_cord['add_100x_btn']
-
-        pyautogui.click(add_100x_pos[0], add_100x_pos[1])
-        pyautogui.click()
-        pyautogui.press('del', presses=5)
-        pyautogui.typewrite('400')
-        pyautogui.click(add_100x_btn_pos[0], add_100x_btn_pos[1])
-        do_bid_pos = self.action_cord['do_bid']
-        pyautogui.click(do_bid_pos[0], do_bid_pos[1])
 
     def add_100x(self, amount):
         '''
@@ -137,7 +122,9 @@ class paipaiBot:
 
         pyautogui.click(add_100x_pos[0], add_100x_pos[1])
         pyautogui.click()
-        pyautogui.press('del', presses=5)
+        pyautogui.press('del', presses=6)
+        # Add sleep to avoid typing too fast
+        time.sleep(0.2)
         pyautogui.typewrite(str(amount))
         pyautogui.click(add_100x_btn_pos[0], add_100x_btn_pos[1])
         do_bid_pos = self.action_cord['do_bid']
@@ -159,10 +146,32 @@ class paipaiBot:
         do_bid_pos = self.action_cord['do_bid']
         pyautogui.click(do_bid_pos[0], do_bid_pos[1])
 
+    def click_bid_ok_btn(self, is_ok):
+        '''
+        click ok after finishing typing the code
+        '''
+        if self.window_region is None:
+            self.locate()
+
+        btn_str = 'click_bid_ok'
+        if not is_ok:
+            btn_str = 'click_bid_cancel'
+
+        click_btn = self.action_cord[btn_str]
+        pyautogui.click(click_btn[0], click_btn[1])
+
+        # Return to the main menu
+        # click_btn = self.action_cord['click_bid_done']
+        # time.sleep(0.3)
+        # pyautogui.click()
+        # pyautogui.click(click_btn[0], click_btn[1])
+        # pyautogui.click(click_btn[0], click_btn[1])
+
 
 class cmdHandler():
     def __init__(self):
         self.bot = paipaiBot()
+        self.date = datetime.now()
 
     def handle_add(self, num_str):
         print 'increase current bidding price'
@@ -176,6 +185,53 @@ class cmdHandler():
 
         return 0
 
+    def handle_timer_add_wrapper(self, target_time_str, amount, do_bid_time=None):
+        if ':' not in target_time_str:
+            target_time_str = '11:29:{0}'.format(target_time_str)
+
+        if do_bid_time and ':' not in do_bid_time:
+            do_bid_time = '11:29:{0}'.format(do_bid_time)
+
+        return self.handle_timer_add(target_time_str, amount, do_bid_time=do_bid_time)
+
+    def handle_timer_add(self, target_time_str, amount, do_bid_time=None):
+        print 'increase price by {0} at {1}'.format(amount, target_time_str)
+        time_format = '%H:%M:%S'
+        target_t = datetime.strptime(target_time_str, time_format)
+        do_bid_time = datetime.strptime(do_bid_time, time_format)
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
+                                  time_format)
+        logging.debug('bidding will be triggered at {0}'.format(self.bid_time_str(target_t)))
+
+        while sys_t < target_t:
+            print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
+
+        # Around to 100x
+        amount = (int(amount) / 100) * 100
+        self.bot.add_100x(amount)
+
+        #
+        # We need to finish typing the code before we click confirm
+        #
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
+                                  time_format)
+        while(sys_t < do_bid_time):
+            print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
+
+        # Click bid button
+        self.bot.click_bid_ok_btn(True)
+
+    def bid_time_str(self, date):
+        '''
+        Adjust the year month and day to
+        the correct value
+        '''
+        return date.replace(year=self.date.year,
+                            month=self.date.month,
+                            day=self.date.day)
+
 
 def main():
     logging.debug('Paipai - xjin')
@@ -186,14 +242,14 @@ def main():
                             if increase_amount is not there or invalid, we will
                             just increase 300
                             e.g a 300
-    t[timer] time increase_amount: increase price on top of minimum value on
-                                   specific time (HH:MM:SS). We can only set
-                                   one timer job instance a time
-                                   if increase_amount is not there or invalid, we will
-                                   just increase 300
-                                   e.g t 11:59:45 600
+    t[timer] increase_time increase_amount bid_time[optional]: increase price on top of minimum value on
+                                                               specific time (HH:MM:SS). We can only set
+                                                               one timer job instance a time
+                                                               if increase_amount is not there or invalid, we will
+                                                               just increase 300
+                                                               e.g t [11:59:]45 600 [11:59:]55
     r[relocate] relocate the bidding window
-    q[quit]: exit the program
+    exit[quit]: exit the program
     '''
 
     print '-----------Paipai-----------'
@@ -206,7 +262,7 @@ def main():
     cmd = None
     cmd_handler = cmdHandler()
 
-    while cmd != 'quit' and cmd != 'q':
+    while True:
         cmd_arr = raw_input('> ').split()
 
         if len(cmd_arr) <= 0:
@@ -226,14 +282,22 @@ def main():
                     cmd_handler.handle_add('300')
 
             elif cmd == 't' or cmd == 'timer':
-                print 'set a timer and automatically increase the price by certain amount'
+                if len(cmd_arr) < 3:
+                    print 'Invalid command, use h[help] to see the usage'
+                    continue
+
+                do_bid_time = None
+                if len(cmd_arr) > 3:
+                    do_bid_time = cmd_arr[3]
+
+                cmd_handler.handle_timer_add_wrapper(cmd_arr[1], cmd_arr[2], do_bid_time=do_bid_time)
 
             elif cmd == 'r' or cmd == 'relocate':
                 cmd_handler.bot.locate()
 
-            elif cmd == 'q' or cmd == 'quit':
+            elif cmd == 'exit' or cmd == 'quit':
                 print 'quit the program...'
-
+                break
             else:
                 print 'Invalid command!\nUsing h[help] to check the manual'
 
@@ -245,6 +309,7 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
+                        #level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d: %(message)s',
                         datefmt='%H:%M:%S')
     # logging.disable(logging.DEBUG) # uncomment to block debug log messages
