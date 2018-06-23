@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 class paipaiBot:
-    def __init__(self):
+    def __init__(self, mode='1'):
         self.window_region = None
         self.action_cord = None
         self.status_region = None
@@ -16,6 +16,11 @@ class paipaiBot:
         self.cur_sys_time = None
         self.cur_lowest_bid = None
         self.cur_lowest_bid_time = None
+
+        # Which mode we are currently running
+        # 1) 51
+        # 2) alltobid
+        self.mode = mode
 
         try:
             self.locate()
@@ -37,7 +42,13 @@ class paipaiBot:
         logging.debug('Finding bidding system window region...')
 
         # identify the top-left corner
-        region = pyautogui.locateOnScreen(self.imPath('green_wifi_51.png'))
+        if self.mode == '1':
+            region = pyautogui.locateOnScreen(self.imPath('title_51_dell.png'))
+        elif self.mode == '2':
+            region = pyautogui.locateOnScreen(self.imPath('title_alltobid_dell.png'))
+
+        # region = pyautogui.locateOnScreen(self.imPath('title_alltobid_dell.png'))
+        # region = pyautogui.locateOnScreen(self.imPath('green_wifi_51.png'))
         # region = pyautogui.locateOnScreen(self.imPath('green_wifi_alltobid.png'))
 
         if region is None:
@@ -45,8 +56,8 @@ class paipaiBot:
             Is the window open?')
 
         # calculate the region of the entire window
-        topLeftX = region[0] - 72
-        topLeftY = region[1] - 23
+        topLeftX = region[0] - 123
+        topLeftY = region[1] - 26
 
         # the game screen is always 854 x 472
         window_region = (topLeftX, topLeftY, 854, 472)
@@ -75,8 +86,8 @@ class paipaiBot:
 
         status_region = {
             'cur_sys_time': (window_region[0] + 103, window_region[1] + 226, 65, 16),
-            'cur_lowest_bid': (window_region[0], window_region[1], 1, 1), # TODO
-            'cur_lowest_bid_time': (window_region[0], window_region[1], 1, 1), # TODO
+            'cur_lowest_bid': (window_region[0], window_region[1], 1, 1),
+            'cur_lowest_bid_time': (window_region[0], window_region[1], 1, 1),
         }
 
         return status_region
@@ -169,9 +180,13 @@ class paipaiBot:
 
 
 class cmdHandler():
-    def __init__(self):
-        self.bot = paipaiBot()
+    def __init__(self, mode='1'):
+        self.bot = paipaiBot(mode)
         self.date = datetime.now()
+
+    def handle_show_time(self):
+        time_format = '%H:%M:%S'
+        return datetime.strptime(self.bot.getCurrentSysTime(), time_format)
 
     def handle_add(self, num_str):
         print 'increase current bidding price'
@@ -258,9 +273,23 @@ def main():
     print '----------------------------'
     print help_txt
 
+    # We have 51 or alltobid, two simulation systems
+    # We may have the official one if alltobid simulation
+    # is different from the offical system
+    running_mode = raw_input('''
+    Which mode?
+    1) 51
+    2) alltobid\n''')
+    if running_mode != '1' and running_mode != '2':
+        print 'Mode {0} is invalid'.format(running_mode)
+        print 'Default mode 1 is chosen'
+        running_mode = '1'
+
+    print "Mode {0} is running".format(running_mode)
+
     # Main loop
     cmd = None
-    cmd_handler = cmdHandler()
+    cmd_handler = cmdHandler(running_mode)
 
     while True:
         cmd_arr = raw_input('> ').split()
@@ -282,6 +311,13 @@ def main():
                     cmd_handler.handle_add('300')
 
             elif cmd == 't' or cmd == 'timer':
+                if len(cmd_arr) == 1:
+                    # We just show the current time
+                    # if we are using system time mode, we would show
+                    # the adjusted bidding time
+                    print cmd_handler.handle_show_time()
+                    continue
+
                 if len(cmd_arr) < 3:
                     print 'Invalid command, use h[help] to see the usage'
                     continue
