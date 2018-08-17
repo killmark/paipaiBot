@@ -93,27 +93,28 @@ class paipaiBot:
         return status_region
 
     def getCurrentSysTime(self):
-        if self.window_region is None:
-            self.locate()
+        # if self.window_region is None:
+        #     self.locate()
 
-        logging.debug('Get current system time')
-        cur_sys_time_region = self.status_region['cur_sys_time']
-        time_im = pyautogui.screenshot(region=cur_sys_time_region)
+        # logging.debug('Get current system time')
+        # cur_sys_time_region = self.status_region['cur_sys_time']
+        # time_im = pyautogui.screenshot(region=cur_sys_time_region)
 
-        # TODO fix those paths
-        tmp_f_name = './tmp/cur_sys_time.png'
-        tmp_result_name = './tmp/cur_sys_time_result'
-        time_im.save(tmp_f_name)
-        cmd = '/usr/local/Cellar/tesseract/3.05.01/bin/tesseract {0} {1} -l eng --psm 7'.format(tmp_f_name, tmp_result_name)
+        # # TODO fix those paths
+        # tmp_f_name = './tmp/cur_sys_time.png'
+        # tmp_result_name = './tmp/cur_sys_time_result'
+        # time_im.save(tmp_f_name)
+        # cmd = '/usr/local/Cellar/tesseract/3.05.01/bin/tesseract {0} {1} -l eng --psm 7'.format(tmp_f_name, tmp_result_name)
 
-        logging.debug('Running command: {0}'.format(cmd))
-        subprocess.call(cmd.split())
+        # logging.debug('Running command: {0}'.format(cmd))
+        # subprocess.call(cmd.split())
 
-        with open(tmp_result_name + '.txt', 'r') as result_fd:
-            cur_sys_time = result_fd.read()
-            logging.debug('Current System time: {0}'.format(cur_sys_time))
+        # with open(tmp_result_name + '.txt', 'r') as result_fd:
+        #     cur_sys_time = result_fd.read()
+        #     logging.debug('Current System time: {0}'.format(cur_sys_time))
 
-        return cur_sys_time.strip()
+        # return cur_sys_time.strip()
+        return time.strftime("%H:%M:%S", time.gmtime())
 
     def getCurrentLowestBid(self):
         # TODO
@@ -216,10 +217,13 @@ class cmdHandler():
         do_bid_time = datetime.strptime(do_bid_time, time_format)
         sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
                                   time_format)
+        print target_t
+        print do_bid_time
+        print sys_t
         logging.debug('bidding will be triggered at {0}'.format(self.bid_time_str(target_t)))
 
         while sys_t < target_t:
-            print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
             sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
 
         # Around to 100x
@@ -232,7 +236,7 @@ class cmdHandler():
         sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
                                   time_format)
         while(sys_t < do_bid_time):
-            print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
             sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
 
         # Click bid button
