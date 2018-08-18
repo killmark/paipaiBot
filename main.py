@@ -22,6 +22,11 @@ class paipaiBot:
         # 2) alltobid
         self.mode = mode
 
+        # using_computer_time:
+        # True: we directly call system time so it is more accurate
+        # False: we get the time from web page
+        self.using_computer_time = False
+
         try:
             self.locate()
 
@@ -92,29 +97,31 @@ class paipaiBot:
 
         return status_region
 
-    def getCurrentSysTime(self):
-        # if self.window_region is None:
-        #     self.locate()
+    def getCurrentSysTime(self, using_computer_time):
+        if using_computer_time:
+            return time.strftime("%H:%M:%S", time.gmtime())
 
-        # logging.debug('Get current system time')
-        # cur_sys_time_region = self.status_region['cur_sys_time']
-        # time_im = pyautogui.screenshot(region=cur_sys_time_region)
+        if self.window_region is None:
+            self.locate()
 
-        # # TODO fix those paths
-        # tmp_f_name = './tmp/cur_sys_time.png'
-        # tmp_result_name = './tmp/cur_sys_time_result'
-        # time_im.save(tmp_f_name)
-        # cmd = '/usr/local/Cellar/tesseract/3.05.01/bin/tesseract {0} {1} -l eng --psm 7'.format(tmp_f_name, tmp_result_name)
+        logging.debug('Get current system time')
+        cur_sys_time_region = self.status_region['cur_sys_time']
+        time_im = pyautogui.screenshot(region=cur_sys_time_region)
 
-        # logging.debug('Running command: {0}'.format(cmd))
-        # subprocess.call(cmd.split())
+        # TODO fix those paths
+        tmp_f_name = './tmp/cur_sys_time.png'
+        tmp_result_name = './tmp/cur_sys_time_result'
+        time_im.save(tmp_f_name)
+        cmd = '/usr/local/Cellar/tesseract/3.05.01/bin/tesseract {0} {1} -l eng --psm 7'.format(tmp_f_name, tmp_result_name)
 
-        # with open(tmp_result_name + '.txt', 'r') as result_fd:
-        #     cur_sys_time = result_fd.read()
-        #     logging.debug('Current System time: {0}'.format(cur_sys_time))
+        logging.debug('Running command: {0}'.format(cmd))
+        subprocess.call(cmd.split())
 
-        # return cur_sys_time.strip()
-        return time.strftime("%H:%M:%S", time.gmtime())
+        with open(tmp_result_name + '.txt', 'r') as result_fd:
+            cur_sys_time = result_fd.read()
+            logging.debug('Current System time: {0}'.format(cur_sys_time))
+
+        return cur_sys_time.strip()
 
     def getCurrentLowestBid(self):
         # TODO
@@ -187,7 +194,7 @@ class cmdHandler():
 
     def handle_show_time(self):
         time_format = '%H:%M:%S'
-        return datetime.strptime(self.bot.getCurrentSysTime(), time_format)
+        return datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time), time_format)
 
     def handle_add(self, num_str):
         print 'increase current bidding price'
@@ -215,7 +222,7 @@ class cmdHandler():
         time_format = '%H:%M:%S'
         target_t = datetime.strptime(target_time_str, time_format)
         do_bid_time = datetime.strptime(do_bid_time, time_format)
-        sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time),
                                   time_format)
         print target_t
         print do_bid_time
@@ -224,7 +231,7 @@ class cmdHandler():
 
         while sys_t < target_t:
             #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
-            sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time), time_format)
 
         # Around to 100x
         amount = (int(amount) / 100) * 100
@@ -233,11 +240,11 @@ class cmdHandler():
         #
         # We need to finish typing the code before we click confirm
         #
-        sys_t = datetime.strptime(self.bot.getCurrentSysTime(),
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time),
                                   time_format)
         while(sys_t < do_bid_time):
             #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
-            sys_t = datetime.strptime(self.bot.getCurrentSysTime(), time_format)
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time), time_format)
 
         # Click bid button
         self.bot.click_bid_ok_btn(True)
