@@ -3,7 +3,10 @@ import os
 import pyautogui
 import subprocess
 import time
+import readline
 from datetime import datetime
+# Show images
+from PIL import Image
 
 
 class paipaiBot:
@@ -25,7 +28,12 @@ class paipaiBot:
         # using_computer_time:
         # True: we directly call system time so it is more accurate
         # False: we get the time from web page
-        self.using_computer_time = False
+        if self.mode == '1':
+            print "NOT using computer time"
+            self.using_computer_time = False
+        else:
+            print "using computer time"
+            self.using_computer_time = True
 
         try:
             self.locate()
@@ -93,6 +101,8 @@ class paipaiBot:
             'cur_sys_time': (window_region[0] + 103, window_region[1] + 226, 65, 16),
             'cur_lowest_bid': (window_region[0], window_region[1], 1, 1),
             'cur_lowest_bid_time': (window_region[0], window_region[1], 1, 1),
+            # Input Code Screen
+            'input_code': (window_region[0] + 416, window_region[1] + 74, 250, 300),
         }
 
         return status_region
@@ -127,6 +137,22 @@ class paipaiBot:
         # TODO
         pass
 
+    def getInputCodeScreen(self):
+        # Add some delay
+        time.sleep(1.0)
+
+        input_code_region = pyautogui.screenshot(region=self.status_region['input_code'])
+        tmp_f_name = './tmp/input_code_screen.png'
+
+        input_code_region.save(tmp_f_name)
+
+        # Enlarge image on screen
+        enlarge_ratio = 3
+        img = Image.open(tmp_f_name)
+        img = img.resize((img.size[0] * enlarge_ratio, img.size[1] * enlarge_ratio),
+                         Image.ANTIALIAS)
+        img.show()
+
     def add_100x(self, amount):
         '''
         Add amount on top of current min bid price
@@ -149,6 +175,10 @@ class paipaiBot:
         do_bid_pos = self.action_cord['do_bid']
         pyautogui.click(do_bid_pos[0], do_bid_pos[1])
 
+        # self.getInputCodeScreen()
+        pyautogui.click(do_bid_pos[0] - 20, do_bid_pos[1])
+        pyautogui.click(do_bid_pos[0] - 20, do_bid_pos[1])
+
     def add_300(self):
         '''
         Click add_300 button to add 300 on
@@ -164,6 +194,8 @@ class paipaiBot:
         # click do_bid button
         do_bid_pos = self.action_cord['do_bid']
         pyautogui.click(do_bid_pos[0], do_bid_pos[1])
+
+        # self.getInputCodeScreen()
 
     def click_bid_ok_btn(self, is_ok):
         '''
@@ -356,7 +388,7 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
-                        #level=logging.INFO,
+                        # level=logging.INFO,
                         format='%(asctime)s.%(msecs)03d: %(message)s',
                         datefmt='%H:%M:%S')
     # logging.disable(logging.DEBUG) # uncomment to block debug log messages
@@ -364,4 +396,10 @@ if __name__ == '__main__':
     # bot.test_add_300()
     # bot.test_add_100x()
     # bot.getCurrentSysTime()
+
+    # Enable Up/Down/C-p/C-n
+    readline.parse_and_bind('"\\C-p": previous-history')
+    readline.parse_and_bind('"\\C-n": next-history')
+    readline.parse_and_bind('"\\e[A": previous-history')
+    readline.parse_and_bind('"\\e[B": next-history')
     main()
