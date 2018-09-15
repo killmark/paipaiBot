@@ -84,6 +84,7 @@ class paipaiBot:
             'add_100': (window_region[0] + 780, window_region[1] + 216),
             'add_200': (window_region[0] + 698, window_region[1] + 216),
             'add_300': (window_region[0] + 623, window_region[1] + 216),
+            'bid_number_region': (window_region[0] + 707, window_region[1] + 250),
             # Do bid related button
             'click_bid_ok': (window_region[0] + 528, window_region[1] + 336),
             'click_bid_cancel': (window_region[0] + 718, window_region[1] + 336),
@@ -149,6 +150,28 @@ class paipaiBot:
         img = img.resize((img.size[0] * enlarge_ratio, img.size[1] * enlarge_ratio),
                          Image.ANTIALIAS)
         img.show()
+
+    def bid_amount(self, amount):
+        '''
+        Bid the amount
+        '''
+        logging.debug('paipaiBot::bid_amount - {0}'.format(amount))
+
+        if self.window_region is None:
+            self.locate()
+
+        bid_number_region = self.action_cord['bid_number_region']
+
+        pyautogui.click(bid_number_region[0], bid_number_region[1])
+        pyautogui.click()
+        pyautogui.press('del', presses=6)
+        # Add sleep to avoid typing too fast
+        time.sleep(0.2)
+        pyautogui.typewrite(str(amount))
+
+        do_bid_pos = self.action_cord['do_bid']
+        pyautogui.click(do_bid_pos[0], do_bid_pos[1])
+
 
     def add_100x(self, amount):
         '''

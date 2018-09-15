@@ -18,6 +18,7 @@ def main():
                                                                if increase_amount is not there or invalid, we will
                                                                just increase 300
                                                                e.g t [11:59:]45 600 [11:59:]55
+    b[bid] increase_time bid_number bid_time[optional]: bid the price on specific time.
     r[relocate] relocate the bidding window
     exit[quit]: exit the program
     '''
@@ -82,8 +83,23 @@ def main():
                 do_bid_time = None
                 if len(cmd_arr) > 3:
                     do_bid_time = cmd_arr[3]
+                else:
+                    do_bid_time = "58"
 
-                cmd_handler.handle_timer_add_wrapper(cmd_arr[1], cmd_arr[2], do_bid_time=do_bid_time)
+                cmd_handler.handle_timer_wrapper(cmd_arr[1], cmd_arr[2], do_bid_time, True)
+
+            elif cmd == 'b' or cmd == 'bid':
+                if len(cmd_arr) < 3:
+                    print 'Invalid command, use h[help] to see the usage'
+                    continue
+
+                do_bid_time = None
+                if len(cmd_arr) > 3:
+                    do_bid_time = cmd_arr[3]
+                else:
+                    do_bid_time = '58'
+                
+                cmd_handler.handle_timer_wrapper(cmd_arr[1], cmd_arr[2], do_bid_time, False)
 
             elif cmd == 'r' or cmd == 'relocate':
                 cmd_handler.bot.locate()

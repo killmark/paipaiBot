@@ -24,16 +24,52 @@ class cmdHandler():
 
         return 0
 
-    def handle_timer_add_wrapper(self, target_time_str, amount, do_bid_time=None):
+    def handle_timer_wrapper(self, target_time_str, amount, do_bid_time, is_offset):
         if ':' not in target_time_str:
             target_time_str = '11:29:{0}'.format(target_time_str)
 
         if do_bid_time and ':' not in do_bid_time:
             do_bid_time = '11:29:{0}'.format(do_bid_time)
 
-        return self.handle_timer_add(target_time_str, amount, do_bid_time=do_bid_time)
+        if is_offset:
+            return self.handle_timer_add(target_time_str, amount, do_bid_time)
 
-    def handle_timer_add(self, target_time_str, amount, do_bid_time=None):
+        return self.handle_timer_bid(target_time_str, amount, do_bid_time)
+
+    def handle_timer_bid(self, target_time_str, amount, do_bid_time):
+        print 'Bid price {0} at {1}'.format(amount, target_time_str)
+        time_format = '%H:%M:%S'
+        target_t = datetime.strptime(target_time_str, time_format)
+        do_bid_time = datetime.strptime(do_bid_time, time_format)
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time),
+                                  time_format)
+        print target_t
+        print do_bid_time
+        print sys_t
+        logging.debug('bidding will be triggered at {0}'.format(self.bid_time_str(target_t)))
+
+        while sys_t < target_t:
+            #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time), time_format)
+
+        # Around to 100x
+        amount = (int(amount) / 100) * 100
+        self.bot.bid_amount(amount)
+
+        #
+        # We need to finish typing the code before we click confirm
+        #
+        sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time),
+                                  time_format)
+        while(sys_t < do_bid_time):
+            #print 'current bidding time: {0}'.format(self.bid_time_str(sys_t))
+            sys_t = datetime.strptime(self.bot.getCurrentSysTime(self.bot.using_computer_time), time_format)
+
+        # Click bid button
+        self.bot.click_bid_ok_btn(True)   
+
+
+    def handle_timer_add(self, target_time_str, amount, do_bid_time):
         print 'increase price by {0} at {1}'.format(amount, target_time_str)
         time_format = '%H:%M:%S'
         target_t = datetime.strptime(target_time_str, time_format)
